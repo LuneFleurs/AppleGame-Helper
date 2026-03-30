@@ -2,7 +2,7 @@
 // @name         Apple Game Plus Solver Helper
 // @namespace    https://apple.oshizi.com/
 // @author       Yettttie
-// @version      0.1.1
+// @version      0.1.2
 // @description  Show rectangle hints for the Apple Game Plus and auto-drag the selected move.
 // @match        https://apple.oshizi.com/*
 // @grant        none
@@ -15,6 +15,7 @@
   const GRID_ROWS = 10;
   const GRID_COLS = 17;
   const TARGET_SUM = 10;
+  const ALLOWED_DEPTHS = [1, 2, 3];
   const SEARCH_DEPTH = 3;
   const BRANCH_LIMIT = 12;
   const HINT_COUNT = 5;
@@ -72,6 +73,10 @@
   let previewJobId = 0;
   const previewCache = loadPreviewCache();
 
+  function sanitizeDepth(depth) {
+    return ALLOWED_DEPTHS.includes(depth) ? depth : SEARCH_DEPTH;
+  }
+
   function loadMode() {
     try {
       const saved = localStorage.getItem(MODE_STORAGE_KEY);
@@ -91,13 +96,13 @@
   function loadDepth() {
     try {
       const saved = Number(localStorage.getItem(DEPTH_STORAGE_KEY));
-      if ([1, 2, 3, 4, 5, 6].includes(saved)) return saved;
+      return sanitizeDepth(saved);
     } catch {}
     return SEARCH_DEPTH;
   }
 
   function saveDepth(depth) {
-    currentDepth = [1, 2, 3, 4, 5, 6].includes(depth) ? depth : SEARCH_DEPTH;
+    currentDepth = sanitizeDepth(depth);
     try {
       localStorage.setItem(DEPTH_STORAGE_KEY, String(currentDepth));
     } catch {}
@@ -719,12 +724,14 @@
   }
 
   function computeHintsByEngine(board, mode, depth, engine) {
+    depth = sanitizeDepth(depth);
     if (engine === 'beam') return computeBeamHints(board, mode, depth, false);
     if (engine === 'beam_exact') return computeBeamHints(board, mode, depth, true);
     return computeHints(board, mode, depth);
   }
 
   function getPreviewSettings(depth, engine) {
+    depth = sanitizeDepth(depth);
     const previewDepth = Math.min(depth, PREVIEW_MAX_AUTO_DEPTH);
     const previewEngine = engine === 'beam_exact' && depth > PREVIEW_MAX_AUTO_DEPTH ? 'beam' : engine;
     return {
@@ -1089,6 +1096,7 @@
   }
 
   function startPreviewComputation(board, depth, engine) {
+    depth = sanitizeDepth(depth);
     board = normalizeBoard(board);
     const cacheKey = getPreviewCacheKey(board, depth, engine);
     const cached = previewCache.get(cacheKey);
@@ -1190,9 +1198,6 @@
           <option value="1">1수</option>
           <option value="2">2수</option>
           <option value="3">3수</option>
-          <option value="4">4수</option>
-          <option value="5">5수</option>
-          <option value="6">6수</option>
         </select>
       </div>
       <div class="row" style="margin-top:8px; justify-content:space-between">
